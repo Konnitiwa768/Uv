@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>UV表示ツール</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #canvasContainer { position: relative; display: inline-block; }
+    canvas, img { image-rendering: pixelated; }
+    #textureCanvas { border: 1px solid #000; }
+    #jsonInput { width: 100%; height: 150px; }
+  </style>
+</head>
+<body>
+  <h2>マイクラUV枠表示ツール</h2>
+  <p>テクスチャ画像とUV JSONデータを貼り付けて枠を表示します。</p>
+
+  <input type="file" id="imageInput" accept="image/*"><br><br>
+  <textarea id="jsonInput" placeholder="UV JSONをここに貼り付けてください。例: { &quot;frames&quot;: [ { &quot;uv&quot;: [0, 0, 16, 16] }, { &quot;uv&quot;: [16, 0, 32, 16] } ] }"></textarea><br>
+  <button id="renderBtn">表示</button>
+
+  <div id="canvasContainer">
+    <canvas id="textureCanvas"></canvas>
+  </div>
+
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const jsonInput = document.getElementById('jsonInput');
+    const renderBtn = document.getElementById('renderBtn');
+    const canvas = document.getElementById('textureCanvas');
+    const ctx = canvas.getContext('2d');
+    let image = new Image();
+
+    imageInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        image.onload = () => {
+          canvas.width = image.width;
+          canvas.height = image.height;
+          ctx.drawImage(image, 0, 0);
+        };
+        image.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    renderBtn.addEventListener('click', () => {
+      if (!image.src) return alert("画像を先に読み込んでください。");
+
+      // テクスチャ再描画
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0);
+
+      let data;
+      try {
+        data = JSON.parse(jsonInput.value);
+      } catch (e) {
+        alert("JSONが正しくありません。");
+        return;
+      }
+
+      const frames = data.frames || [];
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 1;
+
+      for (const frame of frames) {
+        const [x1, y1, x2, y2] = frame.uv;
+        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+      }
+    });
+  </script>
+</body>
+</html>
